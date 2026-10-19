@@ -5,16 +5,14 @@
 # usada pelas demais stacks da VPS (inlaudo).
 #
 # Build/publish da imagem: ./build.sh vX.Y.Z na raiz do repo do app.
-# Deploy: Portainer (cole este compose — veja README) ou CLI na VPS.
+# Deploy: Portainer (web editor ou este repo via GitHub) ou CLI na VPS.
+# Sem bloco build de propósito: a imagem é sempre puxada pronta do Docker Hub.
 #
 # O Postgres fica provisionado nesta stack para o backend futuro (cadastro,
 # dashboard). A landing atual é estática e ainda não o utiliza.
 
 services:
   app:
-    build:
-      context: ..
-      dockerfile: chatguard-docker/Dockerfile
     image: ${DOCKER_IMAGE:-wallesonnn/chatguard-app:latest}
     container_name: chatguard-app
     restart: unless-stopped

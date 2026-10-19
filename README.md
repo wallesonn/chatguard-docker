@@ -39,16 +39,33 @@ que constrói e publica a imagem no Docker Hub.
 > `Host(\`chatguard.life\`) || Host(\`www.chatguard.life\`)` — o certificado
 > cobre os dois hosts, então o DNS precisa existir antes.
 
-## Deploy no Portainer (fluxo manual)
+## Deploy no Portainer
+
+**Opção 1 — Web editor (colar):**
 
 1. **Stacks → Add stack** — nome da stack: `chatguard`.
 2. **Build method: Web editor** — cole o conteúdo de `docker-compose.yml`.
+
+**Opção 2 — Repository (este repo no GitHub):**
+
+1. **Stacks → Add stack** — nome da stack: `chatguard`.
+2. **Build method: Repository** — aponte para
+   `https://github.com/wallesonn/chatguard-docker`, branch `main`, compose
+   path `docker-compose.yml`.
+
+**Em ambos os casos:**
+
 3. Em **Environment variables**, defina no mínimo:
    - `POSTGRES_PASSWORD` — senha forte (troque a padrão);
    - `DOCKER_IMAGE` — opcional, para travar versão
-     (ex.: `wallesonnn/chatguard-app:v0.1.0`; padrão: `latest`).
+     (ex.: `wallesonnn/chatguard-app:v0.1.1`; padrão: `latest`).
 4. **Deploy the stack**. Depois de alguns segundos, `https://chatguard.life`
    deve responder; o certificado é emitido pelo Traefik.
+
+> O compose não tem bloco `build:` de propósito: a imagem é sempre puxada
+> pronta do Docker Hub (publicada via `./build.sh`). Um bloco `build:` falha
+> no Portainer, porque o repo não contém o código-fonte do app. Para
+> atualizar a produção depois de mudanças no repo, use **Update the stack**.
 
 ## Alternativa: CLI na VPS
 
