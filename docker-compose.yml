@@ -1,14 +1,12 @@
-name: chatguard
-
 # Stack de DEPLOY da landing do ChatGuard: a imagem vem pronta do Docker Hub
 # (construída e publicada a partir do repositório do app via ./build.sh).
 # Este repositório não constrói nada — apenas sobe app + Postgres atrás do
 # Traefik já existente na VPS, atendendo chatguard.life.
 #
-# Uso na VPS:
-#   cp .env.example .env   # e ajuste os valores
-#   docker compose pull
-#   docker compose up -d
+# Uso no Portainer: Stacks → Add stack → cole este arquivo → defina as
+# variáveis de ambiente (veja README.md) → Deploy.
+# Sem `name:` no topo de propósito: no Portainer, o nome da stack vira o
+# nome do projeto.
 
 services:
   app:

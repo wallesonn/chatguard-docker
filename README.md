@@ -12,9 +12,29 @@ aplicação + Postgres atrás do Traefik, atendendo **chatguard.life**.
 | Serviço | Imagem | Função |
 |---|---|---|
 | `app` | `wallesonnn/chatguard-app` (Docker Hub) | Landing estática servida por nginx |
-| `db` | `postgres:17-alpine` | Banco local, volume persistente `pgdata` |
+| `db` | `postgres:17-alpine` | Banco local, volume persistente |
 
-## Passos na VPS
+## Deploy no Portainer (fluxo manual)
+
+1. **Stacks → Add stack** — nome da stack: `chatguard`.
+2. Em **Build method**, escolha **Web editor** e cole o conteúdo de
+   `docker-compose.yml`.
+3. Em **Environment variables**, defina no mínimo:
+   - `POSTGRES_PASSWORD` — senha forte (troque a padrão);
+   - `TRAEFIK_NETWORK` — nome da rede Docker do seu Traefik
+     (a mesma usada pelas suas outras stacks).
+   Opciais:
+   - `APP_IMAGE` — para travar uma versão, ex.: `wallesonnn/chatguard-app:v0.1.0`
+     (o padrão é `latest`);
+   - `DOMAIN`, `TRAEFIK_ENTRYPOINT`, `CERT_RESOLVER`, `POSTGRES_USER`,
+     `POSTGRES_DB`, `POSTGRES_PORT` — todos têm padrões no compose.
+4. **Deploy the stack**. Depois de alguns segundos, `https://chatguard.life`
+   deve responder; o certificado é gerado pelo Traefik.
+
+> O compose não tem `name:` no topo de propósito: no Portainer, o nome da
+> stack define o nome do projeto (e dos recursos: volumes, rede default etc.).
+
+## Alternativa: CLI na VPS
 
 ```bash
 git clone https://github.com/wallesonn/chatguard-docker.git
@@ -24,25 +44,13 @@ docker compose pull
 docker compose up -d
 ```
 
-Depois de alguns segundos, `https://chatguard.life` deve responder. O Traefik
-gera o certificado automaticamente (resolutor configurado no `.env`).
-
-### Verificações úteis
-
-```bash
-docker compose ps        # status dos serviços
-docker compose logs -f app
-docker compose logs -f db
-docker compose config    # valida a configuração interpolada
-```
-
 ## Atualizar a versão em produção
 
 1. No repositório do app: `./build.sh vX.Y.Z` (build + push no Docker Hub).
-2. Nesta VPS, uma das opções:
-   - **Seguindo o `latest`**: `docker compose pull && docker compose up -d`
-   - **Versão travada**: defina `APP_IMAGE=wallesonnn/chatguard-app:vX.Y.Z`
-     no `.env` e rode `docker compose up -d`.
+2. No Portainer:
+   - **seguindo `latest`**: abra a stack → **Pull and redeploy**;
+   - **versão travada**: mude `APP_IMAGE` para a nova versão nas variáveis da
+     stack → **Update the stack**.
 
 ## Requisitos
 
