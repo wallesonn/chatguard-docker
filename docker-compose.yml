@@ -1,4 +1,5 @@
-# Stack do ChatGuard: aplicação (export estático servido por nginx) + Postgres
+#Este repositorio é publico 
+#Stack do ChatGuard: aplicação (export estático servido por nginx) + Postgres
 # local. O Traefik já roda na VPS (fora desta stack) e encaminha chatguard.life
 # para o serviço app via labels na rede externa "web" — a mesma configuração
 # usada pelas demais stacks da VPS (inlaudo).
