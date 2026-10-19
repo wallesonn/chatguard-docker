@@ -59,6 +59,10 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - default
+    labels:
+      # Impede o Traefik (exposedByDefault) de tentar rotear o Postgres —
+      # o db não está na rede "web" e geraria erros a cada ciclo de scan.
+      - "traefik.enable=false"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatguard} -d ${POSTGRES_DB:-chatguard}"]
       interval: 10s
