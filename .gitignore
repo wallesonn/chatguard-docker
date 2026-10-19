@@ -1,0 +1,5 @@
+# Segredos reais nunca entram no repositório
+.env
+
+# Sistema
+.DS_Store

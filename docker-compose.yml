@@ -1,0 +1,68 @@
+name: chatguard
+
+# Stack de DEPLOY da landing do ChatGuard: a imagem vem pronta do Docker Hub
+# (construída e publicada a partir do repositório do app via ./build.sh).
+# Este repositório não constrói nada — apenas sobe app + Postgres atrás do
+# Traefik já existente na VPS, atendendo chatguard.life.
+#
+# Uso na VPS:
+#   cp .env.example .env   # e ajuste os valores
+#   docker compose pull
+#   docker compose up -d
+
+services:
+  app:
+    image: ${APP_IMAGE:-wallesonnn/chatguard-app:latest}
+    restart: unless-stopped
+    environment:
+      # URL de conexão usada pelo backend futuro (host "db" = serviço abaixo)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-chatguard}:${POSTGRES_PASSWORD:-chatguard}@db:5432/${POSTGRES_DB:-chatguard}
+      NODE_ENV: production
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-traefik-public}"
+      - "traefik.http.routers.chatguard.rule=Host(`${DOMAIN:-chatguard.life}`)"
+      - "traefik.http.routers.chatguard.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.chatguard.tls=true"
+      - "traefik.http.routers.chatguard.tls.certresolver=${CERT_RESOLVER:-le}"
+      - "traefik.http.services.chatguard.loadbalancer.server.port=80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chatguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatguard}
+      POSTGRES_DB: ${POSTGRES_DB:-chatguard}
+    # Acesso local apenas (loopback) para ferramentas do host; remova se
+    # preferir o banco totalmente isolado na rede interna.
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatguard} -d ${POSTGRES_DB:-chatguard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+
+networks:
+  default:
+  # Rede externa do Traefik já existente na VPS — ajuste o nome em .env
+  traefik-public:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik-public}
