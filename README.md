@@ -1,8 +1,8 @@
 # ChatGuard — Stack Docker
 
-Stack completa para rodar a aplicação ChatGuard em Docker, com **PostgreSQL**
-como banco de dados local e integração com o **Traefik** já existente na VPS,
-atendendo o domínio **chatguard.life**.
+Stack da aplicação ChatGuard em Docker: **PostgreSQL** local + integração com o
+**Traefik** já existente na VPS, atendendo **chatguard.life** (mesma
+infraestrutura das outras stacks da VPS, como o inlaudo).
 
 ## Estrutura
 
@@ -11,87 +11,84 @@ chatguard-docker/
 ├── Dockerfile          # build do Next.js + nginx servindo o export estático
 ├── docker-compose.yml  # serviços app e db (Postgres) + labels do Traefik
 ├── nginx.conf          # servidor estático (gzip, cache, vídeo)
-├── .env.example        # configuração (copie para .env)
+├── .env.example        # configuração local (referência; o real não sobe)
 └── README.md           # este arquivo
 ```
 
-Na raiz do repositório também há um **`.dockerignore`** — ele mantém o contexto
-de build enxuto **sem excluir `public/videos/`**, para que o vídeo local entre
-na imagem — e o **`build.sh`**, que constrói e publica a imagem no Docker Hub.
+> No GitHub, este repositório versiona **apenas** `README.md` e
+> `docker-compose.yml`. Os demais arquivos são locais (necessários ao build)
+> e ficam fora do versionamento, ignorados pelo `.gitignore` da pasta.
+
+Na raiz do repositório do app há ainda o **`.dockerignore`** (mantém o
+contexto de build enxuto **sem excluir `public/videos/`**) e o **`build.sh`**,
+que constrói e publica a imagem no Docker Hub.
 
 ## Pré-requisitos
 
 - VPS com Docker e Docker Compose.
-- Traefik já rodando na VPS, com:
-  - uma rede Docker para os serviços (padrão aqui: `traefik-public`);
-  - um entrypoint HTTPS (padrão aqui: `websecure`);
-  - um resolutor de certificados Let's Encrypt (padrão aqui: `le`).
+- Traefik já rodando na VPS com:
+  - rede externa **`web`** (hardcoded no compose, como no inlaudo);
+  - entrypoint HTTPS **`websecure`**;
+  - resolutor de certificados **`lets-encrypt`**.
 - DNS: `chatguard.life` apontando para o IP da VPS.
-- Para incluir o vídeo: coloque o arquivo em `public/videos/` **antes** do build.
+- Para incluir o vídeo: coloque o arquivo em `public/videos/` **antes** do
+  build (o vídeo entra na imagem, não sobe para lugar nenhum).
 
-> Se o nome da rede, do entrypoint ou do resolutor do seu Traefik for
-> diferente, ajuste no `.env` — tudo é parametrizado.
+> Se quiser servir também `www.chatguard.life`, aponte o DNS do `www` para a
+> VPS e estenda a regra para
+> `Host(\`chatguard.life\`) || Host(\`www.chatguard.life\`)` — o certificado
+> cobre os dois hosts, então o DNS precisa existir antes.
 
-## Configuração
+## Deploy no Portainer (fluxo manual)
+
+1. **Stacks → Add stack** — nome da stack: `chatguard`.
+2. **Build method: Web editor** — cole o conteúdo de `docker-compose.yml`.
+3. Em **Environment variables**, defina no mínimo:
+   - `POSTGRES_PASSWORD` — senha forte (troque a padrão);
+   - `DOCKER_IMAGE` — opcional, para travar versão
+     (ex.: `wallesonnn/chatguard-app:v0.1.0`; padrão: `latest`).
+4. **Deploy the stack**. Depois de alguns segundos, `https://chatguard.life`
+   deve responder; o certificado é emitido pelo Traefik.
+
+## Alternativa: CLI na VPS
 
 ```bash
 cd chatguard-docker
-cp .env.example .env
-# edite o .env: troque POSTGRES_PASSWORD e confira DOMAIN/TRAEFIK_NETWORK
+cp .env.example .env      # troque POSTGRES_PASSWORD
+docker compose pull
+docker compose up -d
+docker compose ps
 ```
 
-## Subindo a stack
+## Build e atualização da imagem
 
 ```bash
-docker compose build   # build local (inclui o vídeo de public/videos/)
-docker compose up -d   # sobe app + db
-docker compose ps      # confere o status
+# na sua máquina (o vídeo de public/videos/ entra na imagem)
+./build.sh vX.Y.Z
 ```
 
-Depois de alguns segundos, `https://chatguard.life` deve responder. O Traefik
-gera o certificado automaticamente (resolutor configurado no `.env`).
-
-### Verificações úteis
-
-```bash
-docker compose logs -f app    # logs da aplicação
-docker compose logs -f db     # logs do Postgres
-docker compose config         # valida a configuração interpolada
-```
+Depois, no Portainer: **Pull and redeploy** na stack (seguindo `latest`) ou
+troque `DOCKER_IMAGE` para a versão exata e faça **Update the stack**.
 
 ## Banco de dados (Postgres)
 
-- Banco criado automaticamente na primeira subida com as variáveis do `.env`
+- Banco criado automaticamente na primeira subida com as variáveis
   (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`).
 - Dados persistidos no volume `pgdata` (sobrevive a `down`/`up`; apague apenas
   de propósito, com `docker compose down -v`).
-- Acesso do host via `127.0.0.1:5432` (somente loopback).
+- Acesso do host via `127.0.0.1:5432` (somente loopback). Se a porta 5432 já
+  estiver ocupada na VPS, troque `POSTGRES_PORT` ou remova o bloco `ports`.
 - O backend da aplicação conversa com o banco pelo host `db` na rede interna.
 
 > A landing page atual é um **export estático** e ainda não usa o banco: o
-> Postgres fica provisionado nesta stack para quando o backend (cadastro,
-> dashboard, listas) entrar. Quando isso acontecer, o Dockerfile deve trocar o
-> estágio final por um runtime Node (`next start`) e as rotas de API passam a
-> usar `DATABASE_URL`.
-
-## Fluxo com registro de imagens (recomendado)
-
-O script **`build.sh`** (na raiz do repositório) constrói a imagem e publica no
-Docker Hub — recomendado quando o vídeo precisa ser incluído no build:
-
-```bash
-# na sua máquina (o vídeo em public/videos/ entra na imagem)
-./build.sh v1.0.0
-
-# na VPS
-docker compose pull
-docker compose up -d
-```
+> Postgres fica provisionado para quando o backend (cadastro, dashboard,
+> listas) entrar. Quando isso acontecer, o Dockerfile troca o estágio final
+> por um runtime Node (`next start`) e as rotas de API passam a usar
+> `DATABASE_URL`.
 
 ## Segurança
 
 - Troque `POSTGRES_PASSWORD` antes do primeiro deploy.
-- O `.env` não é versionado (ignorado pelo `.gitignore`); o `.dockerignore`
-  impede que segredos entrem no contexto de build.
-- A porta do Postgres só é exposta no loopback (`127.0.0.1`); remova o bloco
-  `ports` do serviço `db` se não precisar acessá-lo pelo host.
+- O `.env` real nunca é versionado; o `.dockerignore` impede que segredos
+  entrem no contexto de build.
+- A porta do Postgres só é exposta no loopback (`127.0.0.1`).
