@@ -53,8 +53,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-chatguard}
     # Acesso local apenas (loopback) para ferramentas do host. Se a porta 5432
     # já estiver ocupada na VPS, troque POSTGRES_PORT ou remova este bloco.
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    #ports:
+     # - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
