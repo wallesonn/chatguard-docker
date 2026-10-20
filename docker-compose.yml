@@ -31,7 +31,7 @@ services:
       - "service=chatguard-app"
       - "traefik.enable=true"
       - "traefik.docker.network=web"
-      - "traefik.http.routers.chatguard.rule=Host(`chatguard.life`)"
+      - "traefik.http.routers.chatguard.rule=Host(`chatguard.life`) || Host(`www.chatguard.life`)"
       - "traefik.http.routers.chatguard.entrypoints=websecure"
       - "traefik.http.routers.chatguard.tls=true"
       - "traefik.http.routers.chatguard.tls.certresolver=lets-encrypt"
@@ -51,10 +51,13 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-chatguard}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatguard}
       POSTGRES_DB: ${POSTGRES_DB:-chatguard}
-    # Acesso local apenas (loopback) para ferramentas do host. Se a porta 5432
-    # já estiver ocupada na VPS, troque POSTGRES_PORT ou remova este bloco.
+    # Mapeamento de porta DESABILITADO (2026-10-19): a VPS já tem outro
+    # Postgres publicado na 5432 do host. O db fica acessível apenas pela
+    # rede interna da stack (host "db", porta 5432) — suficiente para o
+    # backend futuro. Para reabilitar acesso pelo host (ferramentas locais),
+    # descomente abaixo usando uma porta livre via POSTGRES_PORT (ex.: 5433).
     #ports:
-     # - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    #  - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:

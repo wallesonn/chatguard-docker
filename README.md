@@ -4,6 +4,10 @@ Stack da aplicação ChatGuard em Docker: **PostgreSQL** local + integração co
 **Traefik** já existente na VPS, atendendo **chatguard.life** (mesma
 infraestrutura das outras stacks da VPS, como o inlaudo).
 
+**Status:** em produção desde 2026-10-19 — `https://chatguard.life` respondendo
+com certificado Let's Encrypt válido. Imagem atual:
+`wallesonnn/chatguard-app` (tags `v0.1.1` e `latest`).
+
 ## Estrutura
 
 ```text
@@ -34,10 +38,9 @@ que constrói e publica a imagem no Docker Hub.
 - Para incluir o vídeo: coloque o arquivo em `public/videos/` **antes** do
   build (o vídeo entra na imagem, não sobe para lugar nenhum).
 
-> Se quiser servir também `www.chatguard.life`, aponte o DNS do `www` para a
-> VPS e estenda a regra para
-> `Host(\`chatguard.life\`) || Host(\`www.chatguard.life\`)` — o certificado
-> cobre os dois hosts, então o DNS precisa existir antes.
+> A regra do Traefik já cobre `chatguard.life` **e** `www.chatguard.life`
+> (o DNS do `www` aponta para a VPS; o certificado é emitido com SAN para os
+> dois hosts).
 
 ## Deploy no Portainer
 
@@ -93,9 +96,12 @@ troque `DOCKER_IMAGE` para a versão exata e faça **Update the stack**.
   (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`).
 - Dados persistidos no volume `pgdata` (sobrevive a `down`/`up`; apague apenas
   de propósito, com `docker compose down -v`).
-- Acesso do host via `127.0.0.1:5432` (somente loopback). Se a porta 5432 já
-  estiver ocupada na VPS, troque `POSTGRES_PORT` ou remova o bloco `ports`.
-- O backend da aplicação conversa com o banco pelo host `db` na rede interna.
+- **Sem porta publicada no host** — o bloco `ports:` do `db` está desabilitado
+  no compose porque a VPS já tem outro Postgres ocupando a 5432. O banco fica
+  acessível apenas pela rede interna da stack (host `db`, porta 5432), que é
+  o que o backend futuro usa via `DATABASE_URL`.
+- Se um dia precisar de acesso pelo host (ferramentas locais), reabilite o
+  bloco `ports` comentado usando uma porta livre, ex.: `POSTGRES_PORT=5433`.
 
 > A landing page atual é um **export estático** e ainda não usa o banco: o
 > Postgres fica provisionado para quando o backend (cadastro, dashboard,
@@ -108,4 +114,26 @@ troque `DOCKER_IMAGE` para a versão exata e faça **Update the stack**.
 - Troque `POSTGRES_PASSWORD` antes do primeiro deploy.
 - O `.env` real nunca é versionado; o `.dockerignore` impede que segredos
   entrem no contexto de build.
-- A porta do Postgres só é exposta no loopback (`127.0.0.1`).
+- O Postgres não publica porta no host — só é alcançável pela rede interna
+  da stack.
+
+## Lições do primeiro deploy (2026-10-19)
+
+Problemas encontrados e resolvidos — úteis para os próximos deploys/domínios:
+
+- **Bloco `build:` no compose quebra o Portainer** — ao fazer deploy pelo
+  método *Repository*, o Portainer clona só este repo (sem o código-fonte do
+  app) e falha em `lstat .../chatguard-docker`. Por isso o compose não tem
+  `build:`: a imagem é sempre puxada pronta do Docker Hub.
+- **DNS precisa propagar ANTES do deploy** — o Let's Encrypt falhou com
+  `no valid A records found` porque o DNS de `chatguard.life` era novo. Após
+  5 validações falhas, o LE aplicou rate limit de 1h
+  (`too many failed authorizations`). O Traefik retenta sozinho e o
+  certificado saiu quando o limite expirou — mas evite o ciclo: confirme
+  `dig +short dominio` retornando o IP da VPS antes de subir a stack.
+- **Porta 5432 do host ocupada** — outro Postgres da VPS já a usa; o
+  mapeamento de porta do `db` ficou desabilitado (ver seção Banco de dados).
+- **`traefik.enable=false` no `db`** — o Traefik da VPS usa
+  `exposedByDefault`, então tentava rotear o Postgres e logava
+  `unable to find the IP address` a cada scan. A label desliga isso; aplique
+  em qualquer serviço não-público que entrar na stack.
