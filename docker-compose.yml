@@ -1,6 +1,6 @@
 #Este repositorio é publico 
-#Stack do ChatGuard: aplicação (export estático servido por nginx) + Postgres
-# local. O Traefik já roda na VPS (fora desta stack) e encaminha chatguard.life
+#Stack do HeroGuard: aplicação (export estático servido por nginx) + Postgres
+# local. O Traefik já roda na VPS (fora desta stack) e encaminha heroguard.my
 # para o serviço app via labels na rede externa "web" — a mesma configuração
 # usada pelas demais stacks da VPS (inlaudo).
 #
@@ -13,29 +13,29 @@
 
 services:
   app:
-    image: ${DOCKER_IMAGE:-wallesonnn/chatguard-app:latest}
-    container_name: chatguard-app
+    image: ${DOCKER_IMAGE:-wallesonnn/heroguard-app:latest}
+    container_name: heroguard-app
     restart: unless-stopped
     expose:
       - "80"
     environment:
       # URL de conexão usada pelo backend futuro (host "db" = serviço abaixo)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-chatguard}:${POSTGRES_PASSWORD:-chatguard}@db:5432/${POSTGRES_DB:-chatguard}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-heroguard}:${POSTGRES_PASSWORD:-heroguard}@db:5432/${POSTGRES_DB:-heroguard}
       NODE_ENV: production
     networks:
       - default
       - web
     labels:
-      - "app=chatguard"
-      - "domain=chatguard.life"
-      - "service=chatguard-app"
+      - "app=heroguard"
+      - "domain=heroguard.my"
+      - "service=heroguard-app"
       - "traefik.enable=true"
       - "traefik.docker.network=web"
-      - "traefik.http.routers.chatguard.rule=Host(`chatguard.life`) || Host(`www.chatguard.life`)"
-      - "traefik.http.routers.chatguard.entrypoints=websecure"
-      - "traefik.http.routers.chatguard.tls=true"
-      - "traefik.http.routers.chatguard.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.chatguard.loadbalancer.server.port=80"
+      - "traefik.http.routers.heroguard.rule=Host(`heroguard.my`) || Host(`www.heroguard.my`)"
+      - "traefik.http.routers.heroguard.entrypoints=websecure"
+      - "traefik.http.routers.heroguard.tls=true"
+      - "traefik.http.routers.heroguard.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.heroguard.loadbalancer.server.port=80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
       interval: 30s
@@ -45,12 +45,12 @@ services:
 
   db:
     image: postgres:17-alpine
-    container_name: chatguard-db
+    container_name: heroguard-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-chatguard}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chatguard}
-      POSTGRES_DB: ${POSTGRES_DB:-chatguard}
+      POSTGRES_USER: ${POSTGRES_USER:-heroguard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-heroguard}
+      POSTGRES_DB: ${POSTGRES_DB:-heroguard}
     # Mapeamento de porta DESABILITADO (2026-10-19): a VPS já tem outro
     # Postgres publicado na 5432 do host. O db fica acessível apenas pela
     # rede interna da stack (host "db", porta 5432) — suficiente para o
@@ -67,7 +67,7 @@ services:
       # o db não está na rede "web" e geraria erros a cada ciclo de scan.
       - "traefik.enable=false"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatguard} -d ${POSTGRES_DB:-chatguard}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-heroguard} -d ${POSTGRES_DB:-heroguard}"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -1,17 +1,25 @@
-# ChatGuard — Stack Docker
+# HeroGuard — Stack Docker
 
-Stack da aplicação ChatGuard em Docker: **PostgreSQL** local + integração com o
-**Traefik** já existente na VPS, atendendo **chatguard.life** (mesma
+Stack da aplicação HeroGuard em Docker: **PostgreSQL** local + integração com o
+**Traefik** já existente na VPS, atendendo **heroguard.my** (mesma
 infraestrutura das outras stacks da VPS, como o inlaudo).
 
-**Status:** em produção desde 2026-10-19 — `https://chatguard.life` respondendo
-com certificado Let's Encrypt válido. Imagem atual:
-`wallesonnn/chatguard-app` (tags `v0.1.1` e `latest`).
+**Status:** a stack anterior (`chatguard`, domínio `chatguard.life`) entrou em
+produção em 2026-10-19. Em 2026-10-23 todo o projeto foi renomeado para
+**HeroGuard** — domínio `heroguard.my` (alterado de `heroguard.life` em
+2026-10-23), imagem
+`wallesonnn/heroguard-app`, containers `heroguard-app`/`heroguard-db`,
+routers/services do Traefik `heroguard` e banco `heroguard`.
+
+> **Para publicar a versão renomeada:** o DNS de `heroguard.my` e
+> `www.heroguard.my` precisa apontar para a VPS antes de subir a stack — o
+> Traefik só emite o certificado quando o domínio resolve. Até o deploy da nova
+> stack, o site em `chatguard.life` continua sendo a versão anterior.
 
 ## Estrutura
 
 ```text
-chatguard-docker/
+heroguard-docker/
 ├── Dockerfile          # build do Next.js + nginx servindo o export estático
 ├── docker-compose.yml  # serviços app e db (Postgres) + labels do Traefik
 ├── nginx.conf          # servidor estático (gzip, cache, vídeo)
@@ -34,11 +42,11 @@ que constrói e publica a imagem no Docker Hub.
   - rede externa **`web`** (hardcoded no compose, como no inlaudo);
   - entrypoint HTTPS **`websecure`**;
   - resolutor de certificados **`lets-encrypt`**.
-- DNS: `chatguard.life` apontando para o IP da VPS.
+- DNS: `heroguard.my` apontando para o IP da VPS.
 - Para incluir o vídeo: coloque o arquivo em `public/videos/` **antes** do
   build (o vídeo entra na imagem, não sobe para lugar nenhum).
 
-> A regra do Traefik já cobre `chatguard.life` **e** `www.chatguard.life`
+> A regra do Traefik já cobre `heroguard.my` **e** `www.heroguard.my`
 > (o DNS do `www` aponta para a VPS; o certificado é emitido com SAN para os
 > dois hosts).
 
@@ -46,14 +54,14 @@ que constrói e publica a imagem no Docker Hub.
 
 **Opção 1 — Web editor (colar):**
 
-1. **Stacks → Add stack** — nome da stack: `chatguard`.
+1. **Stacks → Add stack** — nome da stack: `heroguard`.
 2. **Build method: Web editor** — cole o conteúdo de `docker-compose.yml`.
 
 **Opção 2 — Repository (este repo no GitHub):**
 
-1. **Stacks → Add stack** — nome da stack: `chatguard`.
+1. **Stacks → Add stack** — nome da stack: `heroguard`.
 2. **Build method: Repository** — aponte para
-   `https://github.com/wallesonn/chatguard-docker`, branch `main`, compose
+   `https://github.com/wallesonn/heroguard-docker`, branch `main`, compose
    path `docker-compose.yml`.
 
 **Em ambos os casos:**
@@ -61,8 +69,8 @@ que constrói e publica a imagem no Docker Hub.
 3. Em **Environment variables**, defina no mínimo:
    - `POSTGRES_PASSWORD` — senha forte (troque a padrão);
    - `DOCKER_IMAGE` — opcional, para travar versão
-     (ex.: `wallesonnn/chatguard-app:v0.1.1`; padrão: `latest`).
-4. **Deploy the stack**. Depois de alguns segundos, `https://chatguard.life`
+     (ex.: `wallesonnn/heroguard-app:v0.1.1`; padrão: `latest`).
+4. **Deploy the stack**. Depois de alguns segundos, `https://heroguard.my`
    deve responder; o certificado é emitido pelo Traefik.
 
 > O compose não tem bloco `build:` de propósito: a imagem é sempre puxada
@@ -73,7 +81,7 @@ que constrói e publica a imagem no Docker Hub.
 ## Alternativa: CLI na VPS
 
 ```bash
-cd chatguard-docker
+cd heroguard-docker
 cp .env.example .env      # troque POSTGRES_PASSWORD
 docker compose pull
 docker compose up -d
@@ -123,10 +131,10 @@ Problemas encontrados e resolvidos — úteis para os próximos deploys/domínio
 
 - **Bloco `build:` no compose quebra o Portainer** — ao fazer deploy pelo
   método *Repository*, o Portainer clona só este repo (sem o código-fonte do
-  app) e falha em `lstat .../chatguard-docker`. Por isso o compose não tem
+  app) e falha em `lstat .../heroguard-docker`. Por isso o compose não tem
   `build:`: a imagem é sempre puxada pronta do Docker Hub.
 - **DNS precisa propagar ANTES do deploy** — o Let's Encrypt falhou com
-  `no valid A records found` porque o DNS de `chatguard.life` era novo. Após
+  `no valid A records found` porque o DNS do domínio era novo. Após
   5 validações falhas, o LE aplicou rate limit de 1h
   (`too many failed authorizations`). O Traefik retenta sozinho e o
   certificado saiu quando o limite expirou — mas evite o ciclo: confirme
