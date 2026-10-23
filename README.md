@@ -11,10 +11,10 @@ produção em 2026-10-19. Em 2026-10-23 todo o projeto foi renomeado para
 `wallesonnn/heroguard-app`, containers `heroguard-app`/`heroguard-db`,
 routers/services do Traefik `heroguard` e banco `heroguard`.
 
-> **Para publicar a versão renomeada:** o DNS de `heroguard.my` e
-> `www.heroguard.my` precisa apontar para a VPS antes de subir a stack — o
-> Traefik só emite o certificado quando o domínio resolve. Até o deploy da nova
-> stack, o site em `chatguard.life` continua sendo a versão anterior.
+> **Stack renomeada no ar desde 2026-10-23:** `https://heroguard.my` e
+> `https://www.heroguard.my` respondem com HTTP 200 e certificado Let's Encrypt
+> válido (SAN para os dois hosts). O DNS de ambos aponta para a VPS — o Traefik
+> só emite o certificado quando o domínio resolve.
 
 ## Estrutura
 
